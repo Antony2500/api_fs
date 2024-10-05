@@ -10,7 +10,8 @@ from datetime import timedelta
 
 from app.models import User as DBModelUser
 from app.schemas.auth import Signup
-from app.schemas.user import UpdateProfile, ResetPasswordArgs, DepositForUser, WithdrawForUser, TransferForUser
+from app.schemas.user import UpdateProfile, ResetPasswordArgs, DepositForUser, WithdrawForUser, TransferForUser, \
+    DepositUser, WithdrawUser, TransferUser
 from app.utils.auth import hash_password, utc_now, is_protected_username, verify_password
 from app.services.auth import new_token
 
@@ -122,7 +123,7 @@ async def create_new_password(db_session: AsyncSession, user: DBModelUser, reset
     await db_session.commit()
 
 
-async def deposit_for_user(db_session: AsyncSession, current_user: DBModelUser, deposit_for_user: DepositForUser):
+async def deposit_user(db_session: AsyncSession, current_user: DBModelUser, deposit_for_user: DepositUser):
     if deposit_for_user:
         current_user.balance += deposit_for_user.amount
 
@@ -135,9 +136,24 @@ async def deposit_for_user(db_session: AsyncSession, current_user: DBModelUser, 
         }
 
 
-async def withdraw_for_user(db_session: AsyncSession, current_user: DBModelUser, withdraw_for_user: WithdrawForUser):
-    if withdraw_for_user:
-        current_user.balance -= withdraw_for_user.amount
+async def deposit_for_user(db_session: AsyncSession, deposit_for_user: DepositForUser):
+    receiver = await get_user(db_session, deposit_for_user.account_id)
+
+    if receiver:
+        receiver.balance += deposit_for_user.amount
+
+        await db_session.commit()
+
+        return {
+            "account_id": receiver.id,
+            "amount": receiver.balance,
+            "username": receiver.username
+        }
+
+
+async def withdraw_user(db_session: AsyncSession, current_user: DBModelUser, withdraw_user: WithdrawUser):
+    if withdraw_user:
+        current_user.balance -= withdraw_user.amount
 
         await db_session.commit()
 
@@ -148,7 +164,58 @@ async def withdraw_for_user(db_session: AsyncSession, current_user: DBModelUser,
         }
 
 
-async def transfer_users(db_session: AsyncSession, current_user: DBModelUser, transfer_info: TransferForUser):
+async def withdraw_for_user(db_session: AsyncSession, withdraw_for_user: WithdrawForUser):
+    receiver = await get_user(db_session, withdraw_for_user.account_id)
+
+    if withdraw_user and receiver:
+        receiver.balance -= withdraw_for_user.amount
+
+        await db_session.commit()
+
+        return {
+            "account_id": receiver.id,
+            "amount": receiver.balance,
+            "username": receiver.username
+        }
+
+
+async def transfer_for_users(db_session: AsyncSession, transfer_info: TransferForUser):
+    sender = await get_user(db_session, transfer_info.from_account_id)
+
+
+    if sender and sender.balance < 0:
+        raise HTTPException(status_code=400, detail=f"Your balance is negative - {sender.balance}.")
+
+    receiver = await get_user(db_session, transfer_info.to_account_id)
+
+    if receiver:
+        # Проверяем, достаточно ли средств
+        if sender.balance < transfer_info.amount:
+            raise HTTPException(status_code=400, detail="Insufficient funds.")
+
+        # Обновляем баланс
+        print(f"Before transfer: {sender.balance}, {receiver.balance}")
+        sender.balance -= transfer_info.amount
+        receiver.balance += transfer_info.amount
+        print(f"After transfer: {sender.balance}, {receiver.balance}")
+
+        # Явно добавляем объекты в сессию
+        # db_session.add(current_user)
+        # db_session.add(receiver)
+
+        await db_session.commit()
+
+        return {
+            "from_account_id": sender.id,
+            "balance_hwo_send": sender.balance,
+            "to_account_id": receiver.id,
+            "balance_hwo_got": receiver.balance
+        }
+    else:
+        raise HTTPException(status_code=404, detail="User not found")
+
+
+async def transfer_users(db_session: AsyncSession, current_user: DBModelUser, transfer_info: TransferUser):
     if current_user.balance < 0:
         raise HTTPException(status_code=400, detail=f"Your balance is negative - {current_user.balance}.")
 

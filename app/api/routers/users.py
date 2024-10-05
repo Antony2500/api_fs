@@ -5,12 +5,12 @@ from app.api.dependencies.auth import validate_is_authenticated, validate_passwo
 from app.api.dependencies.user import CurrentUserDep, CurrentAdminDep
 from app.api.dependencies.core import DBSessionDep
 from app.crud.log import create_log
-from app.crud.user import (update_user_profile, create_password_token, create_new_password,
-                           get_all_users, deposit_for_user, withdraw_for_user, transfer_users)
+from app.crud.user import (update_user_profile, create_password_token, create_new_password, deposit_for_user,
+                           transfer_users, withdraw_user, deposit_user, withdraw_for_user, transfer_for_users)
 
-from app.schemas.user import (User, AuthorizedUser, AuthorizedUserWithBalance,UpdateProfile, ResetPasswordArgs,
-                              DepositForUser, DepositResult, WithdrawResult,  WithdrawForUser, TransferResult,
-                              TransferForUser)
+from app.schemas.user import (User, AuthorizedUser, AuthorizedUserWithBalance, UpdateProfile, ResetPasswordArgs,
+                              DepositForUser, DepositResult, WithdrawResult, TransferResult, TransferForUser,
+                              DepositUser, WithdrawUser, WithdrawForUser, TransferUser)
 
 router = APIRouter(
     prefix="/api/users",
@@ -84,17 +84,47 @@ async def user_details(current_admin: CurrentAdminDep):
 
 
 @router.post(
-    "/deposit",
+    "/deposit/me",
     response_model=DepositResult
 )
-async def deposit_user(
-        deposit: DepositForUser,
+async def deposit_me(
+        deposit: DepositUser,
         current_user: CurrentUserDep,
         db_session: DBSessionDep
 ):
-    response =  await deposit_for_user(db_session, current_user, deposit)
+    response =  await deposit_user(db_session, current_user, deposit)
+
+    await create_log(db_session, "deposit_me", current_user)
+    return response
+
+
+@router.post(
+    "/deposit",
+    response_model=DepositResult
+)
+async def deposit(
+        deposit_f_user: DepositForUser,
+        current_user: CurrentUserDep,
+        db_session: DBSessionDep
+):
+    response =  await deposit_for_user(db_session, deposit_f_user)
 
     await create_log(db_session, "deposit", current_user)
+    return response
+
+
+@router.post(
+    "/withdraw/me",
+    response_model=WithdrawResult
+)
+async def withdraw_me(
+        withdraw: WithdrawUser,
+        current_user: CurrentUserDep,
+        db_session: DBSessionDep
+):
+    response = await withdraw_user(db_session, current_user, withdraw)
+
+    await create_log(db_session, "withdraw_me", current_user)
     return response
 
 
@@ -102,27 +132,42 @@ async def deposit_user(
     "/withdraw",
     response_model=WithdrawResult
 )
-async def withdraw_user(
+async def withdraw_me(
         withdraw: WithdrawForUser,
         current_user: CurrentUserDep,
         db_session: DBSessionDep
 ):
-    response = await withdraw_for_user(db_session, current_user, withdraw)
+    response = await withdraw_for_user(db_session, withdraw)
 
     await create_log(db_session, "withdraw", current_user)
     return response
 
 
 @router.post(
-    "/transfer",
+    "/transfer/from_me",
     response_model=TransferResult
 )
 async def transfer_user(
-        transfer: TransferForUser,
+        transfer: TransferUser,
         current_user: CurrentUserDep,
         db_session: DBSessionDep
 ):
     result = await transfer_users(db_session, current_user, transfer)
+
+    await create_log(db_session, "transfer_from_me", current_user)
+    return result
+
+
+@router.post(
+    "/transfer",
+    response_model=TransferResult
+)
+async def transfer_userss(
+        transfer: TransferForUser,
+        current_user: CurrentUserDep,
+        db_session: DBSessionDep
+):
+    result = await transfer_for_users(db_session, transfer)
 
     await create_log(db_session, "transfer", current_user)
     return result

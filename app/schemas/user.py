@@ -50,27 +50,40 @@ class UserDeleteResponse(BaseModel):
     success: bool
 
 
-class DepositForUser(BaseModel):
-    account_id: UUID
+class DepositUser(BaseModel):
     amount: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
 
     class Config:
         # Настройки Pydantic для поддержки Decimal
         json_encoders = {Decimal: lambda v: str(v)}
 
+class DepositForUser(DepositUser):
+    account_id: UUID
+
+
 class DepositResult(DepositForUser, UsernameArgs):
     pass
 
 
-class WithdrawForUser(BaseModel):
+class WithdrawUser(BaseModel):
     amount: Decimal = Field(..., max_digits=10, decimal_places=2)
+
+
+class WithdrawForUser(WithdrawUser):
+    account_id: UUID
+    pass
 
 
 class WithdrawResult(WithdrawForUser, UsernameArgs):
     pass
 
+class TransferUser(BaseModel):
+    to_account_id: UUID
+    amount: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
 
-class TransferForUser(BaseModel):
+
+class TransferForUser(TransferUser):
+    from_account_id: UUID
     to_account_id: UUID
     amount: Decimal = Field(..., gt=0, max_digits=10, decimal_places=2)
 
