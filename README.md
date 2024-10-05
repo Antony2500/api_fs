@@ -1,97 +1,87 @@
 # Python API Service Homework: Banking System
 
-# at http://0.0.0.0:8000/api/docs you will see documentation for all your endpoints. This is the default path to access 
-the automatically generated API documentation in FastAPI.
+# at http://0.0.0.0:8000/api/docs you will find the documentation for all your endpoints. 
+This is the default path for accessing the automatically generated API documentation in FastAPI.
 
-# Start a project using Poetry:
+# Start a project with Poetry:
 
 1. Make sure you have Poetry installed. If not, install it with the following command:
 
 https://python-poetry.org/docs/
 
-2. Activate the Poetry virtual environment: 
+2. Activate the Poetry virtual environment:
 
 poetry shell
 
-3. In .env file specify your data for the configuration.
+3. Enter your data for the configuration in the .env file.
 
-For example if u wanna use poetry - 
-    First Open .env file
-    Second U need wirite DB_HOST = localhost and in another variable u need set up your data
+If you want to use Poetry, for example, first open the .env file. Then you must specify DB_HOST = localhost and define your data in another variable.
 
-4. Also u can see the certs dir. I didn't write this dir in .gitignore cos I generated for you private and public key 
-for HASH_ALGORITHM = HS256 so if u wanna u can set up your secret key.
+4. You can also see the certs directory. I have not written this directory in .gitignore because I have generated a private and a public key for you for HASH_ALGORITHM = HS256 so that you can set up your secret key.
 
-5. "Next, an important step before running my project involves Alembic for migrations and revisions. Here are the actions you can take:
+5. Next, an important step before running my project is to use Alembic for migrations and revisions. Here are the actions you can take:
 
-If you want to apply the latest migration only, please run "alembic upgrade head".
+If you only want to apply the latest migration only, please run "alembic upgrade head".
 
 If you want to start fresh with a new migration:
 
-First, run "alembic downgrade base". This command clears all revisions.
-Next, delete my revision from the versions directory.
-Then, create your own revision with "alembic revision --autogenerate -m "your message here"".
-Finally, apply the new revision with "alembic upgrade head".
-If you encounter errors after running "alembic upgrade head", please create a new database as this issue is not related to my code."
+Execute "alembic downgrade base" first. This command deletes all revisions. Then delete my revision from the versions directory. Then, create your own revision with "alembic revision --autogenerate -m "Your message here"". Finally, apply the new revision with "alembic upgrade head". If you encounter errors after running "alembic upgrade head", please create a new database as this problem is not related to my code."
 
 
 6. Start the project:
 
 /home/anton/.cache/pypoetry/virtualenvs/pythonproject-pflyVAO5-py3.10/bin/python /home/anton/flask_project/pythonProject/start.py
 
-
-# Start a project using Docker Compose:
+# Start a project with Docker Compose:
 
 1. Install Docker and Docker Compose if they are not already installed.
 
 https://docs.docker.com/compose/install/
 
-2. Go to the root directory of the project (where locate docker-compose.yml).
+2. Change to the root directory of the project (where you will find the docker-compose.yml file).
 
-3. In .env file specify your data for the configuration.
+3. Enter your data for the configuration in the .env file.
 
-For example if u wanna use docekr - U need write DB_HOST = postgres and in another variable u need set up your data
+For example, if you want to use docek, you must write DB_HOST = postgres and specify your data in another variable 
 
-4. Also u can see the certs dir. I didn't write this dir in .gitignore cos I generated for you private and public key 
-for HASH_ALGORITHM = HS256 so if u wanna u can set up your secret key.
+4. You can also see the directory for the certifications. I have not entered this directory in .gitignore because I have generated a private and a public key for you for HASH_ALGORITHM = HS256 so that you can set up your secret key if you want.
 
-5. "Next, an important step before running my project involves Alembic for migrations and revisions. Here are the actions you can take:
+5. "Next, an important step before running my project is to use Alembic for migrations and revisions. Here are the actions you can take:
 
-If you want to apply the latest migration only, please run "docker-compose exec backend  upgrade head".
+If you only want to apply the latest migration, please run "docker-compose exec backend upgrade head".
 
-If you want to start fresh with a new migration:
+If you want to start with a new migration:
 
-First, run "docker-compose exec backend  alembic downgrade base". This command clears all revisions.
-Next, delete my revision from the versions directory.
-Then, create your own revision with "docker-compose exec backend alembic revision --autogenerate -m "your message here"".
+First execute "docker-compose exec backend alembic downgrade base". This command deletes all revisions.
+Then delete my revision from the versions directory.
+Then create your own revision with "docker-compose exec backend alembic revision --autogenerate -m "Your message here"".
 Finally, apply the new revision with "docker-compose exec backend alembic upgrade head".
 If you encounter errors after running "docker-compose exec backend alembic upgrade head", please create a new database as this issue is not related to my code."
 
+6. Start the project with Docker Compose:
 
-6. Start the project using Docker Compose:
 
 docker-compose up --build
 
-Note: Before using Docker Compose, make sure you have Docker and Docker Compose installed on your system.
+Note: Before using Docker Compose, make sure that you have installed Docker and Docker Compose on your system.
 
 
 # Run tests:
 
-So u need to go in test folder and after this just write in your console - "pytest"
-I'm so sorry that i haven't written a lot of tests but i promise that i tested my project.
-U can see that i test some endpoint with test_db and they work)
+To do this, go to the test folder and then type in your console: "pytest"
+I'm very sorry I didn't write many tests, but I promise I did test my project.
+You can see that I have tested some endpoints with test_db and they work)
 
 # API Endpoints
 
-# Create Account:
+# Create account:
 
 Method: POST
 Path: /auth/create_account
 
-Description: Signs up a new user.
+Description: Registers a new user.
 
-Actions: Creates a new user in the database, generates access and update tokens, stores the update in the user session,
-and returns the access tokens.
+Actions: Creates a new user in the database, generates access and update tokens, saves the update in the user session and returns the access tokens.
 
 # Login:
 
@@ -101,8 +91,7 @@ Path: /auth/login
 
 Description: Logs the user into the system.
 
-Actions: Creates access and refresh tokens for an existing user, stores them in the user's session, and returns 
-the access token.
+Actions: Generates access and update tokens for an existing user, stores them in the user's session and returns the access token.
 
 # Refresh:
 
@@ -112,7 +101,7 @@ Path: /auth/refresh
 
 Description: Refreshes the access token.
 
-Actions: Checks the validity of the refresh token, retrieves user data from the token, creates a new access token, and returns it.
+Actions: Checks the validity of the refresh token, retrieves the user data from the token, creates a new access token and returns it.
 
 # Logout:
 
@@ -126,94 +115,83 @@ Actions: Removes access and update tokens from the user's session, terminates th
 
 Translated with DeepL.com (free version)
 
-
 # GET /api/users/me
 
-Description: Get the data of the current authorized user.
+Description: Retrieves the data of the current authorized user.
 
 Response: The data of the current user.
 
 # PATCH /api/users/change/profile
 
-Description: Change the profile of the current user.
+Description: Changes the profile of the current user.
 
-Query Parameters: New profile data.
+Query parameter: New profile data.
 
 Response: Updated user data.
 
 # POST /api/users/make/password_reset_token
 
-Description: Create a token to reset the current user's password.
-Response: Successful creation of a new password reset token.
-
+Description: Create a token to reset the password of the current user.
+Response: Successful creation of a new token to reset the password.
 
 # POST /api/users/reset_password
 
-Description: Reset the current user's password.
+Description: Resets the password of the current user.
 
-Request parameters: New password.
+Request parameter: New password.
 
 Response: Successful execution of the password reset.
 
-
 # GET /api/users/admin
 
-Description: Get the data of the current authorized administrator.
+Description: Retrieves the data of the currently authorized administrator.
 
-Response: Current authorized administrator data.
-
-
+Response: Current data of the authorized administrator.
 
 # POST /api/users/deposit/me
 
-Description: Deposit Endpoint My Account
+Description: Deposit endpoint My account
 
-Query Parameters: Amount to my_deposit.
+Query parameter: Amount on my_deposit.
 
-Response: Data about updated my_account balance.
-
+Response: Data on the updated balance of my_account.
 
 # POST /api/users/deposit
 
-Description: Deposit Endpoint Account
+Description: Deposit account endpoint
 
-Query Parameters: ID of the account to deposit to, Amount to deposit.
+Query parameters: ID of the account to which the deposit is to be made, amount to be deposited.
 
-Response: Data about updated account balance.
-
+Response: Data on the updated account balance.
 
 # POST /api/users/withdraw/me
 
-Description: Withdraw My Account
+Description: Withdraw my account
 
-Query Parameters: Amount to my_withdraw.
+Query parameter: Amount to my_withdraw.
 
-Response: Data about updated my_account balance.
-
-
+Response: Data about the updated account balance of my_account.
 
 # POST /api/users/withdraw
 
-Description: Withdraw Account
+Description: Withdraw account
 
-Query Parameters: ID of the account to withdraw to, Amount to withdraw.
+Query parameters: ID of the account to be withdrawn to, amount to be withdrawn.
 
-Response: Data about updated account balance.
-
+Response: Data on the updated account balance.
 
 # POST /api/users/transfer/from_me
 
-Description: Transfer Withdraw From my Account
+Description: Withdraw transfer from my account
 
-Query Parameters: ID of the account to transfer to, Amount to transfer.
+Query parameters: ID of the account to which the transfer is to be made, amount to be transferred.
 
-Response: Data about updated account balance.
-
+Response: Data on the updated account balance.
 
 # POST /api/users/transfer
 
-Description: Transfer Withdraw From Account to another Account
+Description: Transfer withdrawal from one account to another account
 
-Query Parameters: D of the account to transfer from, ID of the account to transfer to, Amount to transfer.
+Query parameters: D of the account to be transferred from, ID of the account to be transferred to, Amount to be transferred.
 
-Response: Data about updated account balance.
+Response: Data on the updated account balance.
