@@ -6,12 +6,19 @@ from pytest_postgresql import factories
 from pytest_postgresql.janitor import DatabaseJanitor
 from contextlib import ExitStack
 from fastapi.testclient import TestClient
+from datetime import timedelta
+
+from app.services.auth import new_token
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 
 from app.models.base import Base
-
-
+from app.schemas.auth import Signup, LoginArgs
 from app.main import init_app
 from app.database import sessionmanager, get_db_session
+from app.models.user import User
+from app.utils.auth import hash_password, utc_now
 
 
 @pytest.fixture(autouse=True)
@@ -53,6 +60,7 @@ def event_loop(request):
     """
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
+    loop.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -94,12 +102,62 @@ async def test_session():
 
 
 @pytest.fixture
-async def register_user(client):
-    signup_data = {
-        "email": "testuser@example.com",
-        "password": "testpassword",
-        "username": "testuser"
-    }
+async def admin_user(test_session):
+    admin = User(
+        email="admin@example.com",
+        username="adminuser",
+        hashed_password=hash_password("password"),
+        role="admin",
+        created=utc_now(),
+        activation_token=new_token(),
+        activation_expire=utc_now() + timedelta(hours=3)
+    )
 
-    response = client.post("/auth/signup", json=signup_data)
+    test_session.add(admin)
+    await test_session.commit()
+    await test_session.refresh(admin)
+    return admin
+
+
+@pytest.fixture
+async def register_user(client):
+    signup_data = Signup(
+        email="testuser@example.com",
+        password="testpassword",
+        username="testuser"
+    ).model_dump()
+
+    response = client.post("/auth/registration", json=signup_data)
     assert response.status_code == 200
+
+
+@pytest.fixture
+async def register_current_user(
+        client,
+        email: str = "testadmin@example.com",
+        password: str = "password",
+        username: str = "testuser"
+):
+    signup_data = Signup(
+        email=email,
+        password=password,
+        username=username
+    ).dict()
+
+    response = client.post("/auth/registration", json=signup_data)
+    assert response.status_code == 200
+
+
+@pytest.fixture
+async def login_admin_user(client, admin_user):
+    login_data = LoginArgs(
+        password="password",
+        email=admin_user.email
+    ).model_dump()
+
+    response = client.post("/auth/login", json=login_data)
+    assert response.status_code == 200
+    json_response = response.json()
+    assert "access_token" in json_response
+    assert "refresh_token" in json_response
+    return json_response["access_token"]

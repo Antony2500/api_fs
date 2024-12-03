@@ -7,10 +7,12 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from app.crud.log import create_log
 from app.schemas.auth import TokenData
 from app.api.dependencies.core import DBSessionDep
+from app.api.dependencies.user import CurrentUserDep, CurrentRefreshDataUser
 from app.api.dependencies.auth import validate_signup, validate_login, validate_is_authenticated
-from app.schemas.auth import Signup, Token, TokenInfo
+from app.schemas.auth import Signup, Token, TokenInfo, LoginValidationResult
 from app.crud.user import create_user, get_user_by_email
-from app.crud.auth import create_auth_token
+from app.crud.auth import create_refresh_auth_token, update_refresh_auth_token, delete_refresh_auth_token, \
+    handle_refresh_token, get_refresh_auth_token, get_refresh_auth_token_without_user
 from app.models.user import User
 from app.constants import REFRESH_TOKEN_TYPE
 from app.services.auth import create_access_token, create_refresh_token, get_token_payload, validate_token_type
@@ -19,7 +21,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post(
-    "/create_account",
+    "/registration",
     summary="Signup",
 )
 async def signup(
@@ -27,17 +29,11 @@ async def signup(
         db_session: DBSessionDep,
         signup: Signup = Depends(validate_signup),
 ):
-    logging.debug(f"Signup request received with username: {signup.username}, email: {signup.email}")
     user = await create_user(db_session, signup)
 
-    await create_auth_token(db_session, user)
+    refresh_token = await create_refresh_auth_token(db_session, user)
+    access_token = create_access_token(user, refresh_token)
 
-    refresh_token = create_refresh_token(user)
-    access_token = create_access_token(user)
-
-    TokenInfo(access_token=access_token, refresh_token=refresh_token)
-
-    request.session["refresh_token"] = refresh_token
     request.session["access_token"] = access_token
 
     await create_log(db_session, "signup", user)
@@ -45,7 +41,6 @@ async def signup(
     return {
         "user_id": user.id,
         "user_name": user.username,
-        "initial_balance": user.balance,
         "time_creation": user.created
     }
 
@@ -57,12 +52,14 @@ async def signup(
 async def login(
         request: Request,
         db_session: DBSessionDep,
-        user: User = Depends(validate_login),
+        login_result: LoginValidationResult = Depends(validate_login)
 ):
-    refresh_token = create_refresh_token(user)
-    access_token = create_access_token(user)
+    user = login_result.user
+    refresh_token_id = login_result.refresh_token_id
 
-    request.session["refresh_token"] = refresh_token
+    refresh_token = await handle_refresh_token(db_session, user, refresh_token_id)
+
+    access_token = create_access_token(user, refresh_token)
     request.session["access_token"] = access_token
 
     await create_log(db_session, "login", user)
@@ -71,47 +68,40 @@ async def login(
 
 
 @router.post(
+    "/logout",
+)
+async def logout(
+        request: Request,
+        db_session: DBSessionDep,
+        refresh_data: CurrentRefreshDataUser
+):
+    user = refresh_data.user
+    refresh_token_id = refresh_data.refresh_token_id
+
+    await delete_refresh_auth_token(db_session, user, refresh_token_id)
+    del request.session["access_token"]
+
+    await create_log(db_session, "refresh", None)
+    return "Logout successful"
+
+
+@router.post(
     "/refresh"
 )
 async def auth_refresh_token(
         request: Request,
         db_session: DBSessionDep,
+        refresh_data: CurrentRefreshDataUser
 ):
     try:
-        payload = get_token_payload(token=request.session["refresh_token"])
+        refresh_token = await update_refresh_auth_token(db_session, refresh_data.user, refresh_data.refresh_token_id)
+        access_token = create_access_token(refresh_data.user, refresh_token)
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=401, detail="Invalid refresh token.")
 
-        validate_token_type(payload, REFRESH_TOKEN_TYPE)
-
-        email = payload.get("sub")
-        if email is None:
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-        if not TokenData(email=email):
-            raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    user = await get_user_by_email(db_session, email)
-    if user is None:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
-
-    access_token = create_access_token(user)
     request.session["access_token"] = access_token
 
-    await create_log(db_session, "refresh", user)
+    await create_log(db_session, "refresh", refresh_data.user)
 
     return access_token
-
-
-@router.get(
-    "/logout",
-    dependencies=[Depends(validate_is_authenticated)],
-)
-async def logout(request: Request, db_session: DBSessionDep,):
-    access_token = request.session.get("access_token")
-    del request.session["access_token"]
-    del request.session["refresh_token"]
-
-    await create_log(db_session, "refresh", None)
-    return "Logout successful"

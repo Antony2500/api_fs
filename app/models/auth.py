@@ -1,4 +1,4 @@
-from sqlalchemy import String, ForeignKey
+from sqlalchemy import String, ForeignKey, Enum
 from sqlalchemy.orm import mapped_column, relationship, Mapped
 from datetime import datetime
 from .base import Base
@@ -7,10 +7,12 @@ from .base import Base
 class AuthToken(Base):
     __tablename__ = "service_auth_tokens"
 
-    secret: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    secret: Mapped[str] = mapped_column(String(1024), unique=True, index=True)
     expiration: Mapped[datetime]
     created: Mapped[datetime]
 
-    user_id = mapped_column(ForeignKey("service_users.id"))
+    user_id = mapped_column(ForeignKey("service_users.id", ondelete="CASCADE"))
 
-    user: Mapped["User"] = relationship(back_populates="auth_tokens")
+    token_type: Mapped[str] = mapped_column(Enum("refresh", name="token_types"))
+
+    user: Mapped["User"] = relationship("User", back_populates="refresh_tokens")

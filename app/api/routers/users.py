@@ -21,7 +21,7 @@ router = APIRouter(
 
 @router.get(
     "/me",
-    response_model=AuthorizedUserWithBalance
+    response_model=AuthorizedUser
 )
 async def user_details(current_user: CurrentUserDep, db_session: DBSessionDep):
     await create_log(db_session, "me", current_user)

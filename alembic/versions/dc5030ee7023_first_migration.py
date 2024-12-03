@@ -1,8 +1,8 @@
-"""add new models
+"""First migration
 
-Revision ID: 31dee55b4c6e
+Revision ID: dc5030ee7023
 Revises: 
-Create Date: 2024-10-05 00:17:54.404774
+Create Date: 2024-11-28 17:07:38.505956
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = '31dee55b4c6e'
+revision: str = 'dc5030ee7023'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -25,8 +25,8 @@ def upgrade() -> None:
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('hashed_password', sa.String(), nullable=True),
     sa.Column('created', sa.DateTime(), nullable=False),
+    sa.Column('email_confirmed', sa.Boolean(), nullable=False),
     sa.Column('banned', sa.Boolean(), nullable=False),
-    sa.Column('balance', sa.Numeric(precision=10, scale=2), nullable=False),
     sa.Column('role', sa.Enum('user', 'admin', name='user_roles'), nullable=False),
     sa.Column('password_reset_token', sa.String(length=64), nullable=True),
     sa.Column('password_reset_expire', sa.DateTime(), nullable=True),
@@ -36,12 +36,13 @@ def upgrade() -> None:
     op.create_index(op.f('ix_service_users_email'), 'service_users', ['email'], unique=True)
     op.create_index(op.f('ix_service_users_username'), 'service_users', ['username'], unique=True)
     op.create_table('service_auth_tokens',
-    sa.Column('secret', sa.String(length=64), nullable=False),
+    sa.Column('secret', sa.String(length=1024), nullable=False),
     sa.Column('expiration', sa.DateTime(), nullable=False),
     sa.Column('created', sa.DateTime(), nullable=False),
     sa.Column('user_id', sa.Uuid(), nullable=True),
+    sa.Column('token_type', sa.Enum('refresh', name='token_types'), nullable=False),
     sa.Column('id', sa.Uuid(), nullable=False),
-    sa.ForeignKeyConstraint(['user_id'], ['service_users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['service_users.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_service_auth_tokens_secret'), 'service_auth_tokens', ['secret'], unique=True)

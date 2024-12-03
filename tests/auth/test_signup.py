@@ -5,6 +5,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 from app.models.user import User as DB_User
+from app.models.auth import AuthToken
 
 
 # Тест для регистрации пользователя
@@ -15,18 +16,20 @@ async def test_signup(client, test_session):
         "username": "testuser"
     }
 
-    response = client.post("/auth/signup", json=signup_data)
+    # Отправляем запрос на регистрацию
+    response = client.post("/auth/registration", json=signup_data)
+    assert response.status_code == 200, f"Response: {response.json()}"
 
-    assert response.status_code == 200
-
-    json_response = response.json()
-    assert "access_token" in json_response
-    assert "refresh_token" in json_response
-
+    # Проверяем созданного пользователя в базе данных
     user = await test_session.scalar(
         select(DB_User).filter(DB_User.email == "testuser@example.com")
     )
+    refresh_token = await test_session.scalar(
+        select(AuthToken).filter(AuthToken.user_id == user.id)
+    )
+
     assert user.email is not None
+    assert refresh_token is not None
 
 
 async def test_signup_unavailable_username(client):
@@ -36,9 +39,9 @@ async def test_signup_unavailable_username(client):
         "username": "xxx"
     }
 
-    response = client.post("/auth/signup", json=signup_data)
+    response = client.post("/auth/registration", json=signup_data)
 
-    assert response.status_code == 422  # Или другой соответствующий статус ошибки
+    assert response.status_code == 422
 
 
 async def test_signup_existed_username(client, register_user):
@@ -48,7 +51,7 @@ async def test_signup_existed_username(client, register_user):
         "username": "testuser"
     }
 
-    response = client.post("/auth/signup", json=signup_data)
+    response = client.post("/auth/registration", json=signup_data)
 
     assert response.status_code == 400
 
@@ -63,7 +66,7 @@ async def test_signup_existed_email(client, register_user):
         "username": "testuser2"
     }
 
-    response = client.post("/auth/signup", json=signup_data)
+    response = client.post("/auth/registration", json=signup_data)
 
     assert response.status_code == 400
 

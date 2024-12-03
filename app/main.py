@@ -12,35 +12,10 @@ from app.database import sessionmanager
 
 logging.basicConfig(stream=sys.stdout, level=logging.DEBUG if settings.log_level == "DEBUG" else logging.INFO)
 
-sessionmanager.init(settings.database_config.DB_CONFIG[0])
 root_logger = logging.getLogger("root_logger")
 
- # @asynccontextmanager
- # async def lifespan(app: FastAPI):
- #
- #     yield
- #     if sessionmanager._engine is not None:
- #         await sessionmanager.close()
-#
-#
-# def get_application() -> FastAPI:
-#     app = FastAPI(lifespan=lifespan, title=settings.project_name, docs_url="/api/docs")
-#     app.add_middleware(SessionMiddleware, secret_key="some-random-string")
-#
-#     @app.get("/")
-#     async def root():
-#         return {"message": "Hello World"}
-#
-#     app.include_router(user_router)
-#     app.include_router(auth_router)
-#
-#     return app
-#
-#
-# app = get_application()
 
-
-def get_application(settings_db: str, init_db: bool = True) -> FastAPI:
+def get_application(settings_db: str = "", init_db: bool = True) -> FastAPI:
     if init_db:
         sessionmanager.init(settings_db)
 
@@ -97,6 +72,7 @@ def init_app(init_db=True):
                 await sessionmanager.close()
 
     server = FastAPI(title="FastAPI server", lifespan=lifespan)
+    server.add_middleware(SessionMiddleware, secret_key="some-random-string")
 
     @server.get("/")
     async def root():

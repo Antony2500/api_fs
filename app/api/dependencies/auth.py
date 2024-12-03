@@ -1,11 +1,13 @@
 import logging
-from fastapi import HTTPException
+from fastapi import HTTPException, Request
 
-from app.schemas.auth import Signup, LoginArgs
+from app.schemas.auth import Signup, LoginArgs, LoginValidationResult
 from app.models.user import User
 from app.crud.user import get_user_by_username, get_user_by_email
 from app.errors import Abort
+from app.constants import ACCESS_TOKEN_TYPE
 from app.utils.auth import verify_password, is_protected_username, utc_now
+from app.services.auth import check_auth_user_from_token_by_payload, get_token_payload
 
 from .user import CurrentUserDep
 from .core import DBSessionDep
@@ -49,14 +51,32 @@ async def validate_signup(signup: Signup, db_session: DBSessionDep) -> Signup:
     return signup
 
 
-async def validate_login(login: LoginArgs, db_session: DBSessionDep) -> User:
+async def validate_login(
+        request: Request,
+        login: LoginArgs,
+        db_session: DBSessionDep
+) -> LoginValidationResult:
     if not (user := await get_user_by_email(db_session, login.email)):
         raise HTTPException(status_code=401, detail="user-not-found")
 
     if not verify_password(login.password, user.hashed_password):
         raise Abort("auth", "invalid-password")
 
-    return user
+    refresh_token_id = None
+
+    access_token = request.session.get("access_token")
+    if access_token:
+        payload = get_token_payload(token=access_token, check_expired_token=False)
+        print(payload)
+        refresh_token_id = payload.get("refresh_token_id")
+        print(refresh_token_id)
+        # if not check_auth_user_from_token_by_payload(ACCESS_TOKEN_TYPE, login.email, payload):
+        #     root_logger.warning(f"Invalid access token for user {login.email}. Refresh token ID: {refresh_token_id}")
+
+
+
+    return LoginValidationResult(user=user, refresh_token_id=refresh_token_id)
+
 
 
 def validate_password_reset(

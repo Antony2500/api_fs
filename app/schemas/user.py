@@ -5,7 +5,7 @@ from uuid import UUID
 from decimal import Decimal
 
 from . import UsernameArgs, PasswordArgs, EmailArgs
-
+from app.models import User as DB_User
 
 class User(PasswordArgs, EmailArgs):
     pass
@@ -94,3 +94,10 @@ class TransferResult(BaseModel):
     to_account_id: UUID
     balance_hwo_got: Decimal = Field(..., max_digits=10, decimal_places=2)
 
+
+class CurrentUserDataWithRefreshTokenID(BaseModel):
+    user: DB_User
+    refresh_token_id: Optional[str]
+
+    class Config:
+        arbitrary_types_allowed = True

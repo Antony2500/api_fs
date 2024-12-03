@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.errors import credentials_exception
+from app.models import AuthToken
 from app.schemas.user import User
 from app.constants import TOKEN_TYPE_FIELD, ACCESS_TOKEN_TYPE, REFRESH_TOKEN_TYPE
 from app.models.user import User as DB_User
@@ -32,7 +33,7 @@ def get_access_token(request: Request):
     token = request.session.get('access_token')
 
     if not bool(token):
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail="Invalid access token")
 
     return token
 
@@ -53,15 +54,14 @@ def decode_jwt(
         token: str | bytes,
         public_key: str = settings.auth_jwt.public_key_path.read_text(),
         algorithm: str = ACCESS_TOKEN_ALGORITHM,
+        verify_exp: bool = True
 ) -> dict:
-    print("here")
-    print(f"{token}")
     decoded = jwt.decode(
         token,
         public_key,
         algorithms=[algorithm],
+        options={"verify_exp": verify_exp}
     )
-    print("here2")
     return decoded
 
 
@@ -95,9 +95,10 @@ def encode_jwt(
 
 def get_token_payload(
         token: str,
+        check_expired_token: bool = True
 ) -> dict:
     try:
-        payload = decode_jwt(token=token)
+        payload = decode_jwt(token=token, verify_exp=check_expired_token)
     except jwt.InvalidTokenError as e:
         raise HTTPException(
             status_code=401,
@@ -124,13 +125,13 @@ def check_auth_user_from_token_by_payload(
     user_email: str,
     payload: dict,
 ) -> bool:
-    validate_token_type(payload, token_type)
-    if payload.get("sub") != user_email:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid email for expected user"
-        )
-    return True
+    try:
+        validate_token_type(payload, token_type)
+        if payload.get("sub") != user_email:
+            return False
+        return True
+    except Exception as e:
+        return False
 
 
 def create_jwt(
@@ -148,9 +149,10 @@ def create_jwt(
     )
 
 
-def create_access_token(user: User) -> str:
+def create_access_token(user: User, refresh_token: AuthToken) -> str:
     jwt_payload = {
         "sub": user.email,
+        "refresh_token_id": str(refresh_token.id)
     }
     return create_jwt(
         token_type=ACCESS_TOKEN_TYPE,

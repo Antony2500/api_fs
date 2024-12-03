@@ -1,4 +1,6 @@
 from . import BaseModel, datetime_pd, UsernameArgs, PasswordArgs, EmailArgs
+from app.models.user import User
+
 from pydantic import Field
 
 
@@ -25,10 +27,17 @@ class TokenResponse(BaseModel):
 
 
 class Signup(UsernameArgs, PasswordArgs, EmailArgs):
-    surname: str = Field(pattern="^[A-Za-z][A-Za-z0-9_]{4,63}$", examples=["Surname"])
-    initial_balance: float = Field(examples=[2000])
+    pass
 
 
 class LoginArgs(PasswordArgs, EmailArgs):
     pass
+
+
+class LoginValidationResult(BaseModel):
+    user: User
+    refresh_token_id: str | None = None
+
+    class Config:
+        arbitrary_types_allowed = True
 

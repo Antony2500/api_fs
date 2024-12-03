@@ -58,7 +58,6 @@ async def get_admin_user_by_email(db_session: AsyncSession, email: str) -> DBMod
 
 async def create_user(db_session: AsyncSession, signup: Signup) -> DBModelUser:
     password_hash = hash_password(signup.password)
-    activation_token = new_token()
     now = utc_now()
 
     user = DBModelUser(
@@ -66,7 +65,6 @@ async def create_user(db_session: AsyncSession, signup: Signup) -> DBModelUser:
         email=signup.email,
         hashed_password=password_hash,
         created=now,
-        balance=signup.initial_balance,
     )
 
     db_session.add(user)

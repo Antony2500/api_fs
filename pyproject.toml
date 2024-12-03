@@ -14,9 +14,25 @@ asyncpg = "^0.29.0"
 passlib = "^1.7.4"
 pyjwt = "^2.9.0"
 bcrypt = "^4.2.0"
+greenlet = "^3.1.1"
+pytest = "^8.3.3"
+pytest-postgresql = "^6.1.1"
+psycopg-binary = "^3.2.3"
+pytest-asyncio = "^0.24.0"
+anyio = "^4.6.2.post1"
 
 [tool.poetry.dev-dependencies]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+
+[tool.pytest.ini_options]
+testpaths = "tests"
+python_files = "test_*.py"
+python_functions = "test_*"
+python_classes = "Test* *Tests"
+addopts = "-vv -x"
+asyncio_mode = "auto"
+pythonpath = ["."]
